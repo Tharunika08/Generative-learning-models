@@ -1,0 +1,109 @@
+import pypdf
+from pypdf import PdfReader
+import os
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    reader = PdfReader(pdf_path)
+    num_pages = len(reader.pages)
+    for page_num in range(num_pages):
+            page = reader.pages[page_num]
+            text += page.extract_text()
+    return text
+
+# pdf_path should be the directory containing your PDFs
+pdf_directory = '/content/drive/MyDrive/GLM'
+all_text = ""
+# Iterate over files within the directory
+for pdf_file in os.listdir(pdf_directory):
+    # Check if the file is a PDF
+    if pdf_file.endswith('.pdf'):
+        pdf_path = os.path.join(pdf_directory, pdf_file)
+        pdf_text=extract_text_from_pdf(pdf_path)
+        all_text += pdf_text + "\n"
+with open('combined_text.txt', 'w', encoding='utf-8') as text_file:
+    text_file.write(all_text)
+
+# Lower case conversion
+data=all_text.lower()
+data
+
+#punctuation removal
+import string
+punctuations = string.punctuation
+data = data.translate(str.maketrans('', '', punctuations))
+data
+
+# Remove special charecters
+def remove_special_characters(text):
+    special_chars = "\'!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+    no_special_chars = ''.join([char if char not in special_chars else ' ' for char in text])
+
+    return no_special_chars
+data=remove_special_characters(data)
+res = "".join(filter(lambda x: not x.isdigit(), data))
+print(res[0:50])
+new_str = res.replace('"', '')
+
+# Stopwords removal
+from gensim.parsing.preprocessing import remove_stopwords
+clean_data = remove_stopwords(res)
+print(clean_data)
+
+def tolist(string):
+    li = list(string.split(" "))
+    return li
+data=tolist(clean_data)
+data[0:10]
+
+# Lemmatization
+import spacy
+def lemmatize_words(words):
+    nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
+    lemmatized_words = [token.lemma_ for token in nlp(" ".join(words))]
+    return lemmatized_words
+
+text=lemmatize_words(data)
+print(text)
+
+# Distribution of words in the data
+from wordcloud import WordCloud
+for i in text:
+  text1 = " ".join(text)
+wordcloud = WordCloud(width = 800, height = 800,
+                background_color ='white').generate(text1)
+plt.figure(figsize = (8, 8), facecolor = None)
+plt.imshow(wordcloud)
+plt.axis("off")
+
+# Bigram generation
+from nltk.util import ngrams
+def generate_word_ngrams(words, n):
+    word_ngrams = list(ngrams(words, n))
+    return word_ngrams
+bigram = generate_word_ngrams(text, 2)
+print(f"{2}-grams for the list of words {text[:20]}:")
+print(bigram[:20])
+
+id2word=corpora.Dictionary(bigram)
+print(id2word)
+texts=bigram
+corpus=[id2word.doc2bow(word) for word in bigram]
+
+# Tf-idf vectorization
+from gensim.models import TfidfModel
+tfidf = TfidfModel(corpus)
+corpus_tfidf = tfidf[corpus]
+
+# Model to perfrom topic modelling
+lda_model = gensim.models.LdaModel(corpus=corpus_tfidf,
+                                       id2word=id2word,
+                                       num_topics=12)
+
+
+print(lda_model.print_topics())
+
+# Topics and the words associated in each topic
+pyLDAvis.enable_notebook()
+vis=pyLDAvis.gensim_models.prepare(lda_model,corpus_tfidf,id2word,mds="mmds",R=50)
+vis    
